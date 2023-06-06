@@ -1,5 +1,6 @@
-from typing import Any, Dict, Iterable, List, Union
+import os
 from pathlib import Path
+from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 from confection import Config
 from spacy.language import Language
@@ -45,3 +46,44 @@ def assemble(
     config_path = Path(config_path)
     config = load_config(config_path, overrides=overrides, interpolate=False)
     return assemble_from_config(config)
+
+
+def consume_parameter(
+    config: Dict[Any, Any],
+    key: str,
+    prefix: Optional[str] = None,
+    default: Optional[Any] = None,
+    type_: Callable[[str], Any] = str,
+) -> Any:
+    """Consume a parameter in the config dict.  Looksfor an environment
+        variable with the given prefix first, then look in the config dict.
+        Pop the parameter from the config dict (if it's there) even if the
+        parameter is first found as an environment variable.
+
+    config (Dict[Any, Any]): Configuration parameters.
+    key (str): Parameter key.
+    prefix (Optional[str]) = None: Combined with `key.upper()` to represent the
+        equivalent environment variable.  None for no prefix.
+    default (Optional[Any]) = None: Default value for the parameter.  None to
+        require a value.
+    type_ (Callable[str, Any]) = str: Converts a string to desired output.
+
+    RETURNS (Any): The parameter value.
+    RAISES (ValueError): If the parameter is not found either as an environment
+        variable or as an entry in config.
+    """
+    env_key = key.upper() if prefix is None else (prefix + key.upper())
+    env_value = os.getenv(env_key, None)
+    if env_value is not None:
+        config.pop(key, None)
+        return type_(env_value)
+    if default is None:
+        try:
+            return config.pop(key)
+        except KeyError:
+            raise ValueError(
+                f"Could not find parameter {key} for Azure OpenAI REST "
+                f"backend: set {key} in your config or set the environment "
+                f"variable {env_key}."
+            )
+    return config.pop(key, default)

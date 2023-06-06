@@ -1,26 +1,14 @@
-import os
 from typing import Any, Dict, Iterable, List, Sized
 
 import requests  # type: ignore[import]
 import srsly  # type: ignore[import]
 from requests import HTTPError
 
+from spacy_llm.util import consume_parameter
+
 from .base import Backend
 
-
-def _getenv_pop(
-    config: Dict[Any, Any],
-    key: Any,
-    env_key: str,
-    default: Any = None,
-) -> Any:
-    env_value = os.getenv(env_key, None)
-    if env_value is not None:
-        config.pop(key, None)
-        return env_value
-    if default is None:
-        return config.pop(key)
-    return config.pop(key, default)
+AZURE_ENV_PREFIX = "AZURE_OPENAI_"
 
 
 class AzureOpenAIBackend(Backend):
@@ -33,7 +21,9 @@ class AzureOpenAIBackend(Backend):
         max_request_time: float,
     ):
         """Initializes new AzureOpenAIBackend instance.
-        config (Dict[Any, Any]): Config passed on to LLM API.
+
+        config (Dict[Any, Any]): Deployment config: args not consumed by spacy-llm
+            are passed on to the Azure OpenAI API.
         strict (bool): If True, ValueError is raised if the LLM API returns a
             malformed response (i. e. any kind of JSON or other response object
             that does not conform to the expectation of how a well-formed
@@ -47,12 +37,17 @@ class AzureOpenAIBackend(Backend):
         max_request_time (float): Max. time (in seconds) to wait for request to
             terminate before raising an exception.
         """
-        self._resource = _getenv_pop(config, "resource", "AZURE_OPENAI_RESOURCE")
-        self._deployment = _getenv_pop(config, "deployment", "AZURE_OPENAI_DEPLOYMENT")
-        self._api_version = _getenv_pop(
-            config, "api_version", "AZURE_OPENAI_API_VERSION"
+        self._resource = consume_parameter(config, "resource", prefix=AZURE_ENV_PREFIX)
+        self._deployment = consume_parameter(
+            config, "deployment", prefix=AZURE_ENV_PREFIX
         )
-        self._is_chat = _getenv_pop(config, "is_chat", "AZURE_OPENAI_IS_CHAT", True)
+        self._api_version = consume_parameter(
+            config, "api_version", prefix=AZURE_ENV_PREFIX
+        )
+        self._is_chat = consume_parameter(
+            config, "is_chat", prefix=AZURE_ENV_PREFIX, default=True, type_=bool
+        )
+        self._api_key = consume_parameter(config, "api_key", prefix=AZURE_ENV_PREFIX)
 
         if self._is_chat:
             config["url"] = (
@@ -87,21 +82,13 @@ class AzureOpenAIBackend(Backend):
 
         RETURNS (Dict[str, str]): Headers with 'api-key' entry.
         """
-        api_key = os.getenv("AZURE_OPENAI_API_KEY")
-        if api_key is None:
-            raise ValueError(
-                "Could not find the API key to access the Azure OpenAI API. "
-                "Ensure you have an API key then make it available as the "
-                "environment variable 'AZURE_OPENAI_API_KEY."
-            )
-
         url = (
             f"https://{self._resource}.openai.azure.com/openai/"
             f"deployments/{self._deployment}?api-version={self._api_version}"
         )
         headers = {
             "Content-Type": "application/json",
-            "api-key": api_key,
+            "api-key": self._api_key,
         }
         r = self.retry(
             call_method=requests.get,
@@ -111,7 +98,7 @@ class AzureOpenAIBackend(Backend):
         )
         if r.status_code != 200:
             raise ValueError(f"Error accessing {url} ({r.status_code}): {r.text}")
-        return {"api-key": api_key}
+        return {"api-key": self._api_key}
 
     def __call__(self, prompts: Iterable[str]) -> Iterable[str]:
         headers = {

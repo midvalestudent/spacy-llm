@@ -2,16 +2,11 @@ from pathlib import Path
 
 import pytest
 from thinc.compat import has_torch_cuda_gpu
+
 from spacy_llm import cache  # noqa: F401
 
-from .. import (
-    ner_dolly,
-    textcat_openai,
-    ner_langchain_openai,
-    ner_minichain_openai,
-    multitask_openai,
-    rel_openai,
-)
+from .. import multitask_openai, ner_dolly, ner_langchain_openai, ner_minichain_openai
+from .. import rel_openai, textcat_azure, textcat_openai
 
 _USAGE_EXAMPLE_PATH = Path(__file__).parent.parent
 
@@ -39,6 +34,23 @@ def test_textcat_openai(config_name: str):
     """
     path = _USAGE_EXAMPLE_PATH / "textcat_openai"
     textcat_openai.run_pipeline(
+        text="text",
+        config_path=path / config_name,
+        examples_path=None
+        if config_name == "zeroshot.cfg"
+        else path / "examples.jsonl",
+        verbose=False,
+    )
+
+
+@pytest.mark.external
+@pytest.mark.parametrize("config_name", ("fewshot.cfg", "zeroshot.cfg"))
+def test_textcat_azure(config_name: str):
+    """Test Azure OpenAI textcat usage example.
+    config_name (str): Name of config file to use.
+    """
+    path = _USAGE_EXAMPLE_PATH / "textcat_azure"
+    textcat_azure.run_pipeline(
         text="text",
         config_path=path / config_name,
         examples_path=None
