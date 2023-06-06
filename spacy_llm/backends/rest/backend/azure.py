@@ -14,9 +14,10 @@ def _getenv_pop(
     env_key: str,
     default: Any = None,
 ) -> Any:
-    if value := os.getenv(env_key) is not None:
+    env_value = os.getenv(env_key, None)
+    if env_value is not None:
         config.pop(key, None)
-        return value
+        return env_value
     if default is None:
         return config.pop(key)
     return config.pop(key, default)
@@ -100,7 +101,7 @@ class AzureOpenAIBackend(Backend):
         )
         headers = {
             "Content-Type": "application/json",
-            "Authorization": api_key,
+            "api-key": api_key,
         }
         r = self.retry(
             call_method=requests.get,
@@ -110,7 +111,7 @@ class AzureOpenAIBackend(Backend):
         )
         if r.status_code != 200:
             raise ValueError(f"Error accessing {url} ({r.status_code}): {r.text}")
-        return {"Authorization": api_key}
+        return {"api-key": api_key}
 
     def __call__(self, prompts: Iterable[str]) -> Iterable[str]:
         headers = {
