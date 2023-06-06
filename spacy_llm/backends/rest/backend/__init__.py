@@ -1,10 +1,11 @@
-from typing import Type, Dict
+from typing import Dict, Type
 
-from . import base, openai, noop
+from . import azure, base, noop, openai
 
 supported_apis: Dict[str, Type[base.Backend]] = {
+    "Azure": azure.AzureOpenAIBackend,
     "OpenAI": openai.OpenAIBackend,
     "NoOp": noop.NoOpBackend,
 }
 
-__all__ = ["base", "openai", "noop", "supported_apis"]
+__all__ = ["azure", "base", "openai", "noop", "supported_apis"]
