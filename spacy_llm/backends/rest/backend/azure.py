@@ -141,7 +141,7 @@ class AzureOpenAIBackend(Backend):
 
             if "error" in responses:
                 if self._strict:
-                    raise ValueError(f"API call failed: {responses}.")
+                    raise ValueError(f"Azure OpenAI API call failed: {responses}.")
                 else:
                     assert isinstance(prompts, Sized)
                     return {"error": [srsly.json_dumps(responses)] * len(prompts)}
