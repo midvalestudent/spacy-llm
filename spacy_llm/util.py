@@ -55,7 +55,7 @@ def consume_parameter(
     default: Optional[Any] = None,
     type_: Callable[[str], Any] = str,
 ) -> Any:
-    """Consume a parameter in the config dict.  Looksfor an environment
+    """Consume a parameter in the config dict.  Look for an environment
         variable with the given prefix first, then look in the config dict.
         Pop the parameter from the config dict (if it's there) even if the
         parameter is first found as an environment variable.
