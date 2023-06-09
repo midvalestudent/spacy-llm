@@ -1,3 +1,4 @@
+import os
 from typing import Any, Dict, Iterable, List, Sized
 
 import requests  # type: ignore[import]
@@ -47,8 +48,9 @@ class AzureOpenAIBackend(Backend):
         self._is_chat = consume_parameter(
             config, "is_chat", prefix=AZURE_ENV_PREFIX, default=True, type_=bool
         )
-        self._api_key = consume_parameter(config, "api_key", prefix=AZURE_ENV_PREFIX)
+        self._api_key = os.getenv(AZURE_ENV_PREFIX + "API_KEY")
 
+        # Set URL for base class
         if self._is_chat:
             config["url"] = (
                 f"https://{self._resource}.openai.azure.com/openai/deployments/"
@@ -59,6 +61,7 @@ class AzureOpenAIBackend(Backend):
                 f"https://{self._resource}.openai.azure.com/openai/deployments/"
                 f"{self._deployment}/completions?api-version={self._api_version}"
             )
+        # Set self._model now so supported_models() succeeds for base class
         self._model = config["model"]
 
         super().__init__(config, strict, max_tries, interval, max_request_time)
@@ -82,6 +85,14 @@ class AzureOpenAIBackend(Backend):
 
         RETURNS (Dict[str, str]): Headers with 'api-key' entry.
         """
+        if self._api_key is None:
+            raise ValueError(
+                "Could not find the API key to access Azure OpenAI. Ensure "
+                "you have an API key set up via your Azure portal then "
+                "make it available as an environment variable "
+                f"'{AZURE_ENV_PREFIX}API_KEY'."
+            )
+
         url = (
             f"https://{self._resource}.openai.azure.com/openai/"
             f"deployments/{self._deployment}?api-version={self._api_version}"

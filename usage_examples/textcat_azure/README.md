@@ -14,8 +14,9 @@ export AZURE_OPENAI_DEPLOYMENT="deployment-name"
 export AZURE_OPENAI_API_VERSION="api-version"
 export AZURE_OPENAI_API_KEY="api-key"
 ```
-(The parameters specifying your deployment can also be set in your config file:
- see the commented lines within this example's configs.)
+(Except for `api-key`, the parameters specifying your deployment can also be
+ set in your config file: see the commented lines within this example's
+ configs.)
 
 Then, you can run the pipeline on a sample text via:
 
